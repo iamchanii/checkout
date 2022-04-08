@@ -25,7 +25,7 @@ export interface IGitCommandManager {
     add?: boolean
   ): Promise<void>
   configExists(configKey: string, globalConfig?: boolean): Promise<boolean>
-  fetch(refSpec: string[], fetchDepth?: number): Promise<void>
+  fetch(refSpec: string[], fetchDepth?: number, sparse?: boolean): Promise<void>
   getDefaultBranch(repositoryUrl: string): Promise<string>
   getWorkingDirectory(): string
   init(): Promise<void>
@@ -47,6 +47,7 @@ export interface IGitCommandManager {
   tryDisableAutomaticGarbageCollection(): Promise<boolean>
   tryGetFetchUrl(): Promise<string>
   tryReset(): Promise<boolean>
+  sparseCheckout(dir: string): Promise<void>
 }
 
 export async function createCommandManager(
@@ -170,14 +171,17 @@ class GitCommandManager {
     return output.exitCode === 0
   }
 
-  async fetch(refSpec: string[], fetchDepth?: number): Promise<void> {
-    const args = ['-c', 'protocol.version=2', 'fetch', '--filter=blob:limit=10k']
+  async fetch(refSpec: string[], fetchDepth?: number, sparse?: boolean): Promise<void> {
+    const args = ['-c', 'protocol.version=2', 'fetch']
     if (!refSpec.some(x => x === refHelper.tagsRefSpec)) {
       args.push('--no-tags')
     }
 
     args.push('--prune', '--progress', '--no-recurse-submodules')
-    if (fetchDepth && fetchDepth > 0) {
+    if (sparse) {
+      args.push(`--filter=blob:none`)
+      args.push(`--sparse`)
+    } else if (fetchDepth && fetchDepth > 0) {
       args.push(`--depth=${fetchDepth}`)
     } else if (
       fshelper.fileExistsSync(
@@ -497,6 +501,11 @@ class GitCommandManager {
     const gitHttpUserAgent = `git/${gitVersion} (github-actions-checkout)`
     core.debug(`Set git useragent to: ${gitHttpUserAgent}`)
     this.gitEnv['GIT_HTTP_USER_AGENT'] = gitHttpUserAgent
+  }
+
+  async sparseCheckout(dir: string) {
+    await this.execGit(['sparse-checkout', 'init', '--cone']);
+    await this.execGit(['sparse-checkout', 'set', dir]);
   }
 }
 

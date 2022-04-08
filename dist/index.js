@@ -6959,14 +6959,18 @@ class GitCommandManager {
             return output.exitCode === 0;
         });
     }
-    fetch(refSpec, fetchDepth) {
+    fetch(refSpec, fetchDepth, sparse) {
         return __awaiter(this, void 0, void 0, function* () {
-            const args = ['-c', 'protocol.version=2', 'fetch', '--filter=blob:limit=10k'];
+            const args = ['-c', 'protocol.version=2', 'fetch'];
             if (!refSpec.some(x => x === refHelper.tagsRefSpec)) {
                 args.push('--no-tags');
             }
             args.push('--prune', '--progress', '--no-recurse-submodules');
-            if (fetchDepth && fetchDepth > 0) {
+            if (sparse) {
+                args.push(`--filter=blob:none`);
+                args.push(`--sparse`);
+            }
+            else if (fetchDepth && fetchDepth > 0) {
                 args.push(`--depth=${fetchDepth}`);
             }
             else if (fshelper.fileExistsSync(path.join(this.workingDirectory, '.git', 'shallow'))) {
@@ -7250,6 +7254,12 @@ class GitCommandManager {
             this.gitEnv['GIT_HTTP_USER_AGENT'] = gitHttpUserAgent;
         });
     }
+    sparseCheckout(dir) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.execGit(['sparse-checkout', 'init', '--cone']);
+            yield this.execGit(['sparse-checkout', 'set', dir]);
+        });
+    }
 }
 class GitOutput {
     constructor() {
@@ -7381,7 +7391,11 @@ function getSource(settings) {
             }
             // Fetch
             core.startGroup('Fetching the repository');
-            if (settings.fetchDepth <= 0) {
+            if (settings.sparse) {
+                const refSpec = refHelper.getRefSpec(settings.ref, settings.commit);
+                yield git.fetch(refSpec, undefined, true);
+            }
+            else if (settings.fetchDepth <= 0) {
                 // Fetch all branches and tags
                 let refSpec = refHelper.getRefSpecForAllHistory(settings.ref, settings.commit);
                 yield git.fetch(refSpec);
@@ -7411,7 +7425,12 @@ function getSource(settings) {
             }
             // Checkout
             core.startGroup('Checking out the ref');
-            yield git.checkout(checkoutInfo.ref, checkoutInfo.startPoint);
+            if (settings.sparse) {
+                yield git.sparseCheckout('helm');
+            }
+            else {
+                yield git.checkout(checkoutInfo.ref, checkoutInfo.startPoint);
+            }
             core.endGroup();
             // Submodules
             if (settings.submodules) {
@@ -17270,6 +17289,7 @@ function getInputs() {
             (core.getInput('persist-credentials') || 'false').toUpperCase() === 'TRUE';
         // Workflow organization ID
         result.workflowOrganizationId = yield workflowContextHelper.getOrganizationId();
+        result.sparse = core.getInput('sparse').toUpperCase() === 'TRUE';
         return result;
     });
 }

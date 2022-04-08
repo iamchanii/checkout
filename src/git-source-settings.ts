@@ -78,4 +78,6 @@ export interface IGitSourceSettings {
    * Organization ID for the currently running workflow (used for auth settings)
    */
   workflowOrganizationId: number | undefined
+
+  sparse: boolean
 }

@@ -122,5 +122,7 @@ export async function getInputs(): Promise<IGitSourceSettings> {
   // Workflow organization ID
   result.workflowOrganizationId = await workflowContextHelper.getOrganizationId()
 
+  result.sparse = core.getInput('sparse').toUpperCase() === 'TRUE'
+
   return result
 }
