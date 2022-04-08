@@ -171,7 +171,7 @@ class GitCommandManager {
   }
 
   async fetch(refSpec: string[], fetchDepth?: number): Promise<void> {
-    const args = ['-c', 'protocol.version=2', 'fetch']
+    const args = ['-c', 'protocol.version=2', 'fetch', '--filter=blob:limit=10k']
     if (!refSpec.some(x => x === refHelper.tagsRefSpec)) {
       args.push('--no-tags')
     }
