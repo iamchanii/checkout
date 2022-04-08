@@ -68,6 +68,8 @@ inputs:
       When the `ssh-key` input is not provided, SSH URLs beginning with `git@github.com:` are
       converted to HTTPS.
     default: false
+  sparse:
+    default: false
 runs:
   using: node16
   main: dist/index.js
