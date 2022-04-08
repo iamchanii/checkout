@@ -92,6 +92,10 @@ When Git 2.18 or higher is not in your PATH, falls back to the REST API to downl
     #
     # Default: false
     submodules: ''
+
+    # sparse
+    # Default: false
+    sparse: ''
 ```
 <!-- end usage -->
 

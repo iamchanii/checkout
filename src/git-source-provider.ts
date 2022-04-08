@@ -84,6 +84,11 @@ export async function getSource(settings: IGitSourceSettings): Promise<void> {
     core.startGroup('Initializing the repository')
     await git.init()
     await git.remoteAdd('origin', repositoryUrl)
+
+    if (settings.sparse) {
+      await git.sparseCheckout('helm')
+    }
+
     core.endGroup()
   }
 
@@ -125,10 +130,7 @@ export async function getSource(settings: IGitSourceSettings): Promise<void> {
 
     // Fetch
     core.startGroup('Fetching the repository')
-    if (settings.sparse) {
-      const refSpec = refHelper.getRefSpec(settings.ref, settings.commit)
-      await git.fetch(refSpec, undefined, true)
-    } else if (settings.fetchDepth <= 0) {
+    if (settings.fetchDepth <= 0) {
       // Fetch all branches and tags
       let refSpec = refHelper.getRefSpecForAllHistory(
         settings.ref,
@@ -168,11 +170,7 @@ export async function getSource(settings: IGitSourceSettings): Promise<void> {
 
     // Checkout
     core.startGroup('Checking out the ref')
-    if (settings.sparse) {
-      await git.sparseCheckout('helm')
-    } else {
-      await git.checkout(checkoutInfo.ref, checkoutInfo.startPoint)
-    }
+    await git.checkout(checkoutInfo.ref, checkoutInfo.startPoint)
     core.endGroup()
 
     // Submodules

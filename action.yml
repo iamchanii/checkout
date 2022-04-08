@@ -69,6 +69,7 @@ inputs:
       converted to HTTPS.
     default: false
   sparse:
+    description: 'sparse'
     default: false
 runs:
   using: node16
